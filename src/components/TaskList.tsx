@@ -1,10 +1,11 @@
 'use client'
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { formatTime } from '../utils/timeUtils';
 import { Timer } from './Timer';
-import { Trash2, ChevronUp, ChevronDown } from 'lucide-react';
+import { Trash2, ChevronUp, ChevronDown, Edit2, Check } from 'lucide-react';
 
 interface Task {
   id: number;
@@ -20,11 +21,28 @@ interface TaskListProps {
   onAdjustFirstTask: (adjustment: number) => void;
   onDeleteTask: (taskId: number) => void;
   onMoveTask: (taskId: number, direction: 'up' | 'down') => void;
+  onEditTaskTime: (taskId: number, newEstimatedTime: number) => void;
 }
 
-export function TaskList({ tasks, onCompleteTask, onAdjustFirstTask, onDeleteTask, onMoveTask }: TaskListProps) {
+export function TaskList({ tasks, onCompleteTask, onAdjustFirstTask, onDeleteTask, onMoveTask, onEditTaskTime }: TaskListProps) {
+  const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
+  const [editedTime, setEditedTime] = useState<string>('');
+
   const handleAdjustment = (minutes: number) => {
     onAdjustFirstTask(minutes);
+  };
+
+  const handleEditClick = (task: Task) => {
+    setEditingTaskId(task.id);
+    setEditedTime(task.estimatedTime.toString());
+  };
+
+  const handleEditSubmit = (taskId: number) => {
+    const newEstimatedTime = parseInt(editedTime);
+    if (!isNaN(newEstimatedTime) && newEstimatedTime > 0) {
+      onEditTaskTime(taskId, newEstimatedTime);
+    }
+    setEditingTaskId(null);
   };
 
   return (
@@ -56,6 +74,23 @@ export function TaskList({ tasks, onCompleteTask, onAdjustFirstTask, onDeleteTas
                 <ChevronDown className="h-4 w-4" />
               </Button>
             </div>
+            {editingTaskId === task.id ? (
+              <div className="flex items-center space-x-2">
+                <Input
+                  type="number"
+                  value={editedTime}
+                  onChange={(e) => setEditedTime(e.target.value)}
+                  className="w-20"
+                />
+                <Button size="icon" onClick={() => handleEditSubmit(task.id)}>
+                  <Check className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <Button size="icon" variant="outline" onClick={() => handleEditClick(task)}>
+                <Edit2 className="h-4 w-4" />
+              </Button>
+            )}
             {index === 0 && (
               <>
                 <Button onClick={() => handleAdjustment(-15)}>-15m</Button>

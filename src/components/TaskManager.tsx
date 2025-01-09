@@ -94,6 +94,14 @@ export function TaskManager() {
     updateTaskTimes(newTasks);
   };
 
+  const editTaskTime = (taskId: number, newEstimatedTime: number) => {
+    const updatedTasks = tasks.map(task => 
+      task.id === taskId ? { ...task, estimatedTime: newEstimatedTime } : task
+    );
+    setTasks(updatedTasks);
+    updateTaskTimes(updatedTasks);
+  };
+
   const updateTaskTimes = (updatedTasks: Task[]) => {
     let currentTime = new Date();
     const newTasks = updatedTasks.map(task => {
@@ -116,6 +124,7 @@ export function TaskManager() {
         onAdjustFirstTask={adjustFirstTask}
         onDeleteTask={deleteTask}
         onMoveTask={moveTask}
+        onEditTaskTime={editTaskTime}
       />
       <h2 className="text-2xl font-bold">Completed Tasks</h2>
       <CompletedTaskList tasks={completedTasks} onDeleteTask={deleteCompletedTask} />
