@@ -71,6 +71,29 @@ export function TaskManager() {
     updateTaskTimes(updatedTasks);
   };
 
+  const deleteCompletedTask = (taskId: number) => {
+    setCompletedTasks(completedTasks.filter(task => task.id !== taskId));
+  };
+
+  const moveTask = (taskId: number, direction: 'up' | 'down') => {
+    const taskIndex = tasks.findIndex(task => task.id === taskId);
+    if (taskIndex === -1) return;
+
+    const newTasks = [...tasks];
+    const task = newTasks[taskIndex];
+    
+    if (direction === 'up' && taskIndex > 0) {
+      newTasks[taskIndex] = newTasks[taskIndex - 1];
+      newTasks[taskIndex - 1] = task;
+    } else if (direction === 'down' && taskIndex < newTasks.length - 1) {
+      newTasks[taskIndex] = newTasks[taskIndex + 1];
+      newTasks[taskIndex + 1] = task;
+    }
+
+    setTasks(newTasks);
+    updateTaskTimes(newTasks);
+  };
+
   const updateTaskTimes = (updatedTasks: Task[]) => {
     let currentTime = new Date();
     const newTasks = updatedTasks.map(task => {
@@ -92,9 +115,11 @@ export function TaskManager() {
         onCompleteTask={completeTask} 
         onAdjustFirstTask={adjustFirstTask}
         onDeleteTask={deleteTask}
+        onMoveTask={moveTask}
       />
       <h2 className="text-2xl font-bold">Completed Tasks</h2>
-      <CompletedTaskList tasks={completedTasks} />
+      <CompletedTaskList tasks={completedTasks} onDeleteTask={deleteCompletedTask} />
     </div>
   );
 }
+
