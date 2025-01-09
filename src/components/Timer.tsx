@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react';
-import { formatTime } from '@/utils/timeUtils';
+import { formatTime } from '../utils/timeUtils';
 
 interface TimerProps {
   endTime: Date;

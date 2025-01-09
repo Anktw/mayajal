@@ -1,11 +1,12 @@
 import React from 'react';
-import { formatTime } from '@/utils/timeUtils';
+import { formatTime } from '../utils/timeUtils';
+import { format } from 'date-fns';
 
 interface CompletedTask {
   id: number;
   name: string;
   estimatedTime: number;
-  completionTime: Date;
+  completionTime: string;
 }
 
 interface CompletedTaskListProps {
@@ -19,10 +20,9 @@ export function CompletedTaskList({ tasks }: CompletedTaskListProps) {
         <div key={task.id} className="p-4 bg-gray-100 shadow rounded-lg">
           <h3 className="font-bold">{task.name}</h3>
           <p>Estimated time: {formatTime(task.estimatedTime)}</p>
-          <p>Completed at: {task.completionTime.toLocaleString()}</p>
+          <p>Completed at: {format(new Date(task.completionTime), 'Pp')}</p>
         </div>
       ))}
     </div>
   );
 }
-

@@ -11,8 +11,8 @@ interface Task {
   id: number;
   name: string;
   estimatedTime: number;
-  startTime: Date;
-  completionTime: Date;
+  startTime: string;
+  completionTime: string;
 }
 
 export function TaskManager() {
@@ -21,15 +21,15 @@ export function TaskManager() {
   const [nextId, setNextId] = useLocalStorage('nextId', 1);
 
   useEffect(() => {
-    // Convert stored dates back to Date objects
+    // Convert stored dates to ISO strings
     setTasks(tasks.map(task => ({
       ...task,
-      startTime: new Date(task.startTime),
-      completionTime: task.completionTime ? new Date(task.completionTime) : new Date()
+      startTime: new Date(task.startTime).toISOString(),
+      completionTime: task.completionTime ? new Date(task.completionTime).toISOString() : new Date().toISOString()
     })));
     setCompletedTasks(completedTasks.map(task => ({
       ...task,
-      completionTime: new Date(task.completionTime)
+      completionTime: new Date(task.completionTime).toISOString()
     })));
   }, []);
 
@@ -39,8 +39,8 @@ export function TaskManager() {
       id: nextId,
       name: taskName,
       estimatedTime,
-      startTime: now,
-      completionTime: addMinutesToDate(now, estimatedTime)
+      startTime: now.toISOString(),
+      completionTime: addMinutesToDate(now, estimatedTime).toISOString()
     };
     setTasks([...tasks, newTask]);
     setNextId(nextId + 1);
@@ -50,7 +50,7 @@ export function TaskManager() {
   const completeTask = (taskId: number) => {
     const taskToComplete = tasks.find(task => task.id === taskId);
     if (taskToComplete) {
-      setCompletedTasks([...completedTasks, { ...taskToComplete, completionTime: new Date() }]);
+      setCompletedTasks([...completedTasks, { ...taskToComplete, completionTime: new Date().toISOString() }]);
       const updatedTasks = tasks.filter(task => task.id !== taskId);
       setTasks(updatedTasks);
       updateTaskTimes(updatedTasks);
@@ -65,11 +65,17 @@ export function TaskManager() {
     }
   };
 
+  const deleteTask = (taskId: number) => {
+    const updatedTasks = tasks.filter(task => task.id !== taskId);
+    setTasks(updatedTasks);
+    updateTaskTimes(updatedTasks);
+  };
+
   const updateTaskTimes = (updatedTasks: Task[]) => {
     let currentTime = new Date();
     const newTasks = updatedTasks.map(task => {
-      const newTask = { ...task, startTime: new Date(currentTime) };
-      newTask.completionTime = addMinutesToDate(currentTime, task.estimatedTime);
+      const newTask = { ...task, startTime: currentTime.toISOString() };
+      newTask.completionTime = addMinutesToDate(currentTime, task.estimatedTime).toISOString();
       currentTime = new Date(newTask.completionTime);
       return newTask;
     });
@@ -81,10 +87,14 @@ export function TaskManager() {
       <h1 className="text-3xl font-bold">Task Manager</h1>
       <AddTaskForm onAddTask={addTask} />
       <h2 className="text-2xl font-bold">Ongoing Tasks</h2>
-      <TaskList tasks={tasks} onCompleteTask={completeTask} onAdjustFirstTask={adjustFirstTask} />
+      <TaskList 
+        tasks={tasks} 
+        onCompleteTask={completeTask} 
+        onAdjustFirstTask={adjustFirstTask}
+        onDeleteTask={deleteTask}
+      />
       <h2 className="text-2xl font-bold">Completed Tasks</h2>
       <CompletedTaskList tasks={completedTasks} />
     </div>
   );
 }
-
