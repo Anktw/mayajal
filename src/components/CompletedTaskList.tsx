@@ -21,7 +21,7 @@ export function CompletedTaskList({ tasks, onDeleteTask }: CompletedTaskListProp
   return (
     <div className="space-y-4">
       {tasks.map((task) => (
-        <div key={task.id} className="flex items-center justify-between p-4 bg-gray-100 shadow rounded-lg">
+        <div key={task.id} className="flex bg-green-200 dark:bg-green-950 items-center justify-between p-4 shadow border-2 border-green-600 rounded-lg">
           <div>
             <h3 className="font-bold">{task.name}</h3>
             <p>Estimated time: {formatTime(task.estimatedTime)}</p>

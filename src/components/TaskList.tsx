@@ -48,18 +48,18 @@ export function TaskList({ tasks, onCompleteTask, onAdjustFirstTask, onDeleteTas
   return (
     <div className="space-y-4">
       {tasks.map((task, index) => (
-        <div key={task.id} className="flex items-center justify-between p-4 bg-white shadow rounded-lg">
-          <div className="flex-grow">
-            <h3 className="font-bold">{task.name}</h3>
-            <p>Estimated time: {formatTime(task.estimatedTime)}</p>
-            <p>Completion time: {new Date(task.completionTime).toLocaleString()}</p>
+        <div key={task.id} className="flex flex-col md:flex-row md:items-center md:justify-between justify-between bg-foreground dark:bg-black text-background dark:text-foreground p-4 shadow rounded-lg gap-4">
+          <div className="flex-grow mb-2 md:mb-0">
+            <h3 className="font-bold break-words text-xl">{task.name}</h3>
+            <p className="text-sm">Estimated time: {formatTime(task.estimatedTime)}</p>
+            <p className="text-xs">Completion time: {new Date(task.completionTime).toLocaleString()}</p>
             {index === 0 && <Timer endTime={new Date(task.completionTime)} />}
           </div>
-          <div className="flex items-center space-x-2">
-            <div className="flex flex-col space-y-1">
+          <div className="flex flex-wrap md:flex-nowrap items-center gap-2 w-full md:w-auto">
+            <div className="flex flex-row md:flex-col gap-1">
               <Button 
                 size="icon" 
-                variant="outline" 
+                variant="default" 
                 onClick={() => onMoveTask(task.id, 'up')} 
                 disabled={index === 0}
               >
@@ -67,7 +67,7 @@ export function TaskList({ tasks, onCompleteTask, onAdjustFirstTask, onDeleteTas
               </Button>
               <Button 
                 size="icon" 
-                variant="outline" 
+                variant="default" 
                 onClick={() => onMoveTask(task.id, 'down')} 
                 disabled={index === tasks.length - 1}
               >
@@ -75,7 +75,7 @@ export function TaskList({ tasks, onCompleteTask, onAdjustFirstTask, onDeleteTas
               </Button>
             </div>
             {editingTaskId === task.id ? (
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center gap-2">
                 <Input
                   type="number"
                   value={editedTime}
@@ -87,17 +87,17 @@ export function TaskList({ tasks, onCompleteTask, onAdjustFirstTask, onDeleteTas
                 </Button>
               </div>
             ) : (
-              <Button size="icon" variant="outline" onClick={() => handleEditClick(task)}>
+              <Button size="icon" variant="default" onClick={() => handleEditClick(task)}>
                 <Edit2 className="h-4 w-4" />
               </Button>
             )}
             {index === 0 && (
               <>
-                <Button onClick={() => handleAdjustment(-15)}>-15m</Button>
-                <Button onClick={() => handleAdjustment(15)}>+15m</Button>
+                <Button className="px-2 py-1 text-xs" onClick={() => handleAdjustment(-15)}>-15m</Button>
+                <Button className="px-2 py-1 text-xs" onClick={() => handleAdjustment(15)}>+15m</Button>
               </>
             )}
-            <Button onClick={() => onCompleteTask(task.id)}>Complete</Button>
+            <Button className="px-2 py-1 text-xs " onClick={() => onCompleteTask(task.id)}>Completed</Button>
             <Button variant="destructive" size="icon" onClick={() => onDeleteTask(task.id)}>
               <Trash2 className="h-4 w-4" />
             </Button>

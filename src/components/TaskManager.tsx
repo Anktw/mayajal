@@ -115,7 +115,7 @@ export function TaskManager() {
 
   return (
     <div className="container mx-auto p-4 space-y-8">
-      <h1 className="text-3xl font-bold">Task Manager</h1>
+      <h1 className="text-3xl font-bold">Lock In</h1>
       <AddTaskForm onAddTask={addTask} />
       <h2 className="text-2xl font-bold">Ongoing Tasks</h2>
       <TaskList 

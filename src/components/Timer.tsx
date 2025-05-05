@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react';
-import { formatTime } from '../utils/timeUtils';
+import { formatTimeFromSeconds } from '../utils/timeUtils';
 
 interface TimerProps {
   endTime: Date;
@@ -14,7 +14,7 @@ export function Timer({ endTime }: TimerProps) {
     const timer = setInterval(() => {
       const now = new Date();
       const difference = endTime.getTime() - now.getTime();
-      setTimeLeft(Math.max(0, Math.floor(difference / 60000)));
+      setTimeLeft(Math.max(0, Math.floor(difference / 1000)));
     }, 1000);
 
     return () => clearInterval(timer);
@@ -22,7 +22,7 @@ export function Timer({ endTime }: TimerProps) {
 
   return (
     <div className="text-lg font-semibold">
-      Time left: {formatTime(timeLeft)}
+      Time left: {formatTimeFromSeconds(timeLeft)}
     </div>
   );
 }
