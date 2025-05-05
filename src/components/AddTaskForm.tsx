@@ -24,7 +24,7 @@ export function AddTaskForm({ onAddTask }: AddTaskFormProps) {
       setEstimatedTime('');
     }
   };
-  
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <Input
@@ -57,4 +57,3 @@ export function AddTaskForm({ onAddTask }: AddTaskFormProps) {
     </form>
   );
 }
-
