@@ -1,9 +1,10 @@
-import { TaskManager } from "@/components/TaskManager"
-import { ModeToggle } from "@/components/mode-toggle"
-export default function HomePage() {
+import HeaderCompGuest from "./navbar"
+import { TaskManagerGuest } from "./TaskManager"
+export default function HomePageGuest() {
   return (
     <div className="min-h-screen py-8">
-      <TaskManager />
+      <HeaderCompGuest/>
+      <TaskManagerGuest />
     </div>
   )
 }

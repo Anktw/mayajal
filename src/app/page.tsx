@@ -1,10 +1,8 @@
-import { TaskManager } from "@/components/TaskManager"
-import { ModeToggle } from "@/components/mode-toggle"
+import HomePageGuest from "@/components/guestusers/mainpage"
 export default function Home() {
   return (
-    <div className="min-h-screen py-8">
-      <TaskManager />
-      <ModeToggle/>
+    <div className="min-h-screen py-10 my-8">
+      <HomePageGuest/>
     </div>
   )
 }

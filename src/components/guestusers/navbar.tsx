@@ -1,33 +1,16 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { fetchWithAuth } from "@/utils/fetchWithAuth"
 import { SettingsButton } from "../settings-button"
 
-const webpages = ["Features", "Links", "Extension"].map((name) => ({
-  name,
-  path: `/${name.toLowerCase()}`,
-}))
 
-type User = {
-  email: string
-  username: string
-  first_name?: string
-  last_name?: string
-}
-
-const HeaderComp = () => {
-  const pathname = usePathname()
+const HeaderCompGuest = () => {
   const [isOpen, setIsOpen] = useState(false)
   const [prevScrollPos, setPrevScrollPos] = useState(0)
   const [visible, setVisible] = useState(true)
   const [scrolled, setScrolled] = useState(false)
   const [scrollingUp, setScrollingUp] = useState(false)
   const [lastScrollY, setLastScrollY] = useState(0)
-  const [user, setUser] = useState<User | null>(null)
-  const [loading, setLoading] = useState(true)
   const [signupHref, setSignupHref] = useState("https://accounts.unkit.site/auth/user/signup")
   const [loginHref, setLoginHref] = useState("https://accounts.unkit.site/auth/user/login")
 
@@ -81,20 +64,6 @@ const HeaderComp = () => {
     }
   }, [closeMenuOnScroll, closeMenuOnResize])
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const res = await fetchWithAuth("/api/user/me")
-        if (!res.ok) throw new Error("Not authorized")
-        const data = await res.json()
-        setUser(data)
-      } catch {
-      } finally {
-        setLoading(false)
-      }
-    }
-    load()
-  }, [])
 
   useEffect(() => {
     const currentUrl = window.location.href
@@ -111,36 +80,21 @@ const HeaderComp = () => {
       <div
         className={`backdrop-blur-xl flex justify-between items-center px-6 py-4 md:px-12 ${scrolled ? "p-2 border-2 rounded-b-lg" : "p-4"
           }`}
-      >
+      ><div className="font-bold text-xl md:text-2xl">Lock-in</div>
         {/* Logo */}
-        <div
-          className={`text-2xl md:text-3xl lg:text-4xl left-0 transition-all duration-400 font-medium ${scrolled ? "scale-90" : "scale-100"
-            }`}
-        >
-        </div>
-
         {/* Desktop Navigation */}
-        {/* User/Login Section */}
-        <SettingsButton/>
-        Lock In
+        <SettingsButton />
         <div className="hidden md:flex items-center gap-4">
-          {loading ? (
-            <span>Loading...</span>
-          ) : user ? (
-            <span>Hello, {user.username}</span>
-          ) : (
-            <>
-              <a href={loginHref} className="text-gray-300 hover:text-white transition">
-                Login
-              </a>
-              <a
-                href={signupHref}
-                className="bg-yellow-400 text-black font-medium px-4 py-2 rounded-full hover:bg-yellow-300 transition"
-              >
-                Sign Up
-              </a>
-            </>
-          )}
+          <p>Please Login to save on cloud</p>
+          <a href={loginHref} className="bg-foreground text-background font-medium px-4 py-2 rounded-full hover:bg-slate-800 dark:hover:bg-gray-400 transition">
+            Login
+          </a>
+          <a
+            href={signupHref}
+            className="bg-yellow-400 text-black font-medium px-4 py-2 rounded-full hover:bg-yellow-300 transition"
+          >
+            Sign Up
+          </a>
         </div>
         {/* Burger Menu Button */}
         <button
@@ -173,15 +127,9 @@ const HeaderComp = () => {
         >
           {/* Menu Links */}
           <nav className="flex flex-col items-center mt-20 px-8 space-y-4">
-           
-            <div className="flex md:hidden items-center gap-4">
-          {loading ? (
-            <span>Loading...</span>
-          ) : user ? (
-            <span className="text-gray-300">Hello, {user.username}</span>
-          ) : (
-            <>
-              <a href="https://accounts-unkit.vercel.app/auth/user/login" className="text-gray-300 hover:text-white transition">
+            <div className="flex flex-col md:hidden items-center gap-4">
+              <p>Please Login to save on cloud</p>
+              <a href="https://accounts-unkit.vercel.app/auth/user/login" className="bg-foreground text-background font-medium px-4 py-2 rounded-full hover:bg-slate-800 dark:hover:bg-gray-400 transition">
                 Login
               </a>
               <a
@@ -190,13 +138,11 @@ const HeaderComp = () => {
               >
                 Sign Up
               </a>
-            </>
-          )}
-        </div>
+            </div>
           </nav>
         </div>
       )}
     </header>
   )
 }
-export default HeaderComp
+export default HeaderCompGuest
