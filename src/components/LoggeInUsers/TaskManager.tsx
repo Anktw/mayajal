@@ -24,6 +24,8 @@ export function TaskManager() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [nextId, setNextId] = useLocalStorage("nextId", 1)
+  const [syncing, setSyncing] = useState(false)
+  const [lastSyncError, setLastSyncError] = useState<string | null>(null)
 
   const addTask = (taskName: string, estimatedTime: number) => {
     const now = new Date()
@@ -107,6 +109,12 @@ export function TaskManager() {
     addTask(name, estimatedTime)
   }
 
+  // Determine sync status
+  const unsyncedTasks = tasks.some(t => t.needsSync)
+  let syncStatus: 'synced' | 'syncing' | 'error' = 'synced'
+  if (syncing) syncStatus = 'syncing'
+  else if (lastSyncError || unsyncedTasks) syncStatus = 'error'
+
   useEffect(() => {
     const syncInterval = setInterval(() => {
       syncTasksWithBackend()
@@ -120,8 +128,13 @@ export function TaskManager() {
 
   const syncTasksWithBackend = async () => {
     const dirtyTasks = tasks.filter(t => t.needsSync)
-    if (dirtyTasks.length === 0) return
-    setIsLoading(true)
+    if (dirtyTasks.length === 0) {
+      setSyncing(false)
+      setLastSyncError(null)
+      return
+    }
+    setSyncing(true)
+    setLastSyncError(null)
     try {
       for (const task of dirtyTasks) {
         if (task.id < 1000000) {
@@ -131,16 +144,27 @@ export function TaskManager() {
         }
       }
       setTasks(tasks.map(t => ({ ...t, needsSync: false })))
+      setSyncing(false)
+      setLastSyncError(null)
     } catch (err) {
-      setError("Failed to sync tasks with backend")
-    } finally {
-      setIsLoading(false)
+      setLastSyncError("Failed to sync tasks with backend")
+      setSyncing(false)
     }
   }
 
   return (
     <div className="container mx-auto p-4 space-y-8">
-      <p className="text-green-600 font-semibold mt-10">Synced with backend</p>
+      <p className={
+        syncStatus === 'synced'
+          ? 'text-green-600 font-semibold mt-10'
+          : syncStatus === 'syncing'
+          ? 'text-yellow-600 font-semibold mt-10'
+          : 'text-red-600 font-semibold mt-10'
+      }>
+        {syncStatus === 'synced' && 'Synced with backend'}
+        {syncStatus === 'syncing' && 'Syncing with backend...'}
+        {syncStatus === 'error' && (lastSyncError ? lastSyncError : 'Not all tasks are synced!')}
+      </p>
       <div className="space-y-4">
         <h2 className="text-xl font-semibold">Add Task</h2>
         <AddTaskForm onAddTask={addTask} />
