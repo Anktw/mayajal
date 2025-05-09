@@ -1,10 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Plus, Save, Trash2, Edit2, Check, X } from "lucide-react"
 import { useLocalStorage } from "../hooks/useLocalStorage"
+import { fetchSavedTasks, addSavedTaskAPI, updateSavedTaskAPI, SavedTask as BackendSavedTask } from "@/services/taskService"
 
 interface SavedTask {
   id: number
@@ -14,14 +15,19 @@ interface SavedTask {
 
 interface SavedTaskManagerProps {
   onAddSavedTask: (task: Omit<SavedTask, "id">) => void
+  isLoggedIn?: boolean
 }
 
-export function SavedTaskManager({ onAddSavedTask }: SavedTaskManagerProps) {
-  const [savedTasks, setSavedTasks] = useLocalStorage<SavedTask[]>("savedTasks", [
-    { id: 1, name: "Quick coding session", estimatedTime: 25 },
-    { id: 2, name: "Break", estimatedTime: 10 },
-  ])
-  const [nextSavedId, setNextSavedId] = useLocalStorage("nextSavedId", 4)
+export function SavedTaskManager({ onAddSavedTask, isLoggedIn }: SavedTaskManagerProps) {
+  const [savedTasks, setSavedTasks] = isLoggedIn
+    ? useState<SavedTask[]>([])
+    : useLocalStorage<SavedTask[]>("savedTasks", [
+        { id: 1, name: "Quick coding session", estimatedTime: 25 },
+        { id: 2, name: "Break", estimatedTime: 10 },
+      ])
+  const [nextSavedId, setNextSavedId] = isLoggedIn
+    ? useState(1000)
+    : useLocalStorage("nextSavedId", 4)
   const [newTaskName, setNewTaskName] = useState("")
   const [newTaskTime, setNewTaskTime] = useState("")
   const [isAdding, setIsAdding] = useState(false)
@@ -29,15 +35,27 @@ export function SavedTaskManager({ onAddSavedTask }: SavedTaskManagerProps) {
   const [editTaskName, setEditTaskName] = useState("")
   const [editTaskTime, setEditTaskTime] = useState("")
 
-  const handleAddSavedTask = () => {
+  // Fetch saved tasks from backend if logged in
+  useEffect(() => {
+    if (isLoggedIn) {
+      fetchSavedTasks().then(setSavedTasks)
+    }
+  }, [isLoggedIn])
+
+  const handleAddSavedTask = async () => {
     if (newTaskName && newTaskTime) {
-      const newTask: SavedTask = {
-        id: nextSavedId,
-        name: newTaskName,
-        estimatedTime: Number.parseInt(newTaskTime),
+      if (isLoggedIn) {
+        const newTask = await addSavedTaskAPI(newTaskName, Number.parseInt(newTaskTime))
+        if (newTask) setSavedTasks([...savedTasks, newTask])
+      } else {
+        const newTask: SavedTask = {
+          id: nextSavedId,
+          name: newTaskName,
+          estimatedTime: Number.parseInt(newTaskTime),
+        }
+        setSavedTasks([...savedTasks, newTask])
+        setNextSavedId(nextSavedId + 1)
       }
-      setSavedTasks([...savedTasks, newTask])
-      setNextSavedId(nextSavedId + 1)
       setNewTaskName("")
       setNewTaskTime("")
       setIsAdding(false)
@@ -54,15 +72,23 @@ export function SavedTaskManager({ onAddSavedTask }: SavedTaskManagerProps) {
     setEditTaskTime(task.estimatedTime.toString())
   }
 
-  const handleEditSave = () => {
+  const handleEditSave = async () => {
     if (editingTaskId && editTaskName && editTaskTime) {
-      setSavedTasks(
-        savedTasks.map((task) =>
-          task.id === editingTaskId
-            ? { ...task, name: editTaskName, estimatedTime: Number.parseInt(editTaskTime) }
-            : task,
-        ),
-      )
+      if (isLoggedIn) {
+        const updated = await updateSavedTaskAPI(editingTaskId, {
+          name: editTaskName,
+          estimated_time: Number.parseInt(editTaskTime),
+        })
+        if (updated) setSavedTasks(savedTasks.map((task) => (task.id === editingTaskId ? updated : task)))
+      } else {
+        setSavedTasks(
+          savedTasks.map((task) =>
+            task.id === editingTaskId
+              ? { ...task, name: editTaskName, estimatedTime: Number.parseInt(editTaskTime) }
+              : task,
+          ),
+        )
+      }
       setEditingTaskId(null)
       setEditTaskName("")
       setEditTaskTime("")
