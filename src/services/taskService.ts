@@ -1,19 +1,36 @@
-const FAST_URL = process.env.FAST_URL || ''
+import { getSessionCookie } from "@/utils/getCookie";
+
+const FAST_URL = process.env.FAST_URL || '';
 
 interface Task {
-  id: number
-  name: string
-  estimatedTime: number
-  startTime: string
-  completionTime: string
+  id: number;
+  name: string;
+  estimatedTime: number;
+  startTime: string;
+  completionTime: string;
+}
+
+// Helper to get fetch options with session cookie
+function getAuthFetchOptions(method: string = 'GET', body?: any): RequestInit {
+  const sessionCookie = getSessionCookie();
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  if (sessionCookie) {
+    headers['Cookie'] = `session=${sessionCookie}`;
+  }
+  return {
+    method,
+    headers,
+    credentials: 'include' as RequestCredentials,
+    ...(body ? { body: JSON.stringify(body) } : {}),
+  };
 }
 
 // Fetch all tasks for the current user
 export async function fetchAllTasks(): Promise<Task[]> {
   try {
-    const response = await fetch(`${FAST_URL}/lockin/tasks`, {
-      credentials: 'include',
-    });
+    const response = await fetch(`${FAST_URL}/lockin/tasks`, getAuthFetchOptions());
     if (!response.ok) {
       throw new Error('Failed to fetch tasks');
     }
@@ -27,14 +44,10 @@ export async function fetchAllTasks(): Promise<Task[]> {
 // Add a new task for the current user
 export async function addTaskAPI(taskName: string, estimatedTime: number): Promise<Task | null> {
   try {
-    const response = await fetch(`${FAST_URL}/lockin/tasks`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-      body: JSON.stringify({ name: taskName, estimated_time: estimatedTime }),
-    });
+    const response = await fetch(
+      `${FAST_URL}/lockin/tasks`,
+      getAuthFetchOptions('POST', { name: taskName, estimated_time: estimatedTime })
+    );
     if (!response.ok) {
       throw new Error('Failed to add task');
     }
@@ -48,14 +61,10 @@ export async function addTaskAPI(taskName: string, estimatedTime: number): Promi
 // Update an existing task for the current user
 export async function updateTaskAPI(taskid: number, payload: Partial<{ name: string; estimated_time: number }>): Promise<Task | null> {
   try {
-    const response = await fetch(`${FAST_URL}/lockin/tasks/${taskid}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-      body: JSON.stringify(payload),
-    });
+    const response = await fetch(
+      `${FAST_URL}/lockin/tasks/${taskid}`,
+      getAuthFetchOptions('PUT', payload)
+    );
     if (!response.ok) {
       throw new Error('Failed to update task');
     }
@@ -76,9 +85,7 @@ export interface SavedTask {
 // Fetch all saved tasks for the current user
 export async function fetchSavedTasks(): Promise<SavedTask[]> {
   try {
-    const response = await fetch(`${FAST_URL}/lockin/saved-tasks`, {
-      credentials: 'include',
-    });
+    const response = await fetch(`${FAST_URL}/lockin/saved-tasks`, getAuthFetchOptions());
     if (!response.ok) {
       throw new Error('Failed to fetch saved tasks');
     }
@@ -92,14 +99,10 @@ export async function fetchSavedTasks(): Promise<SavedTask[]> {
 // Add a new saved task for the current user
 export async function addSavedTaskAPI(name: string, estimatedTime: number): Promise<SavedTask | null> {
   try {
-    const response = await fetch(`${FAST_URL}/lockin/saved-tasks`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-      body: JSON.stringify({ name, estimated_time: estimatedTime }),
-    });
+    const response = await fetch(
+      `${FAST_URL}/lockin/saved-tasks`,
+      getAuthFetchOptions('POST', { name, estimated_time: estimatedTime })
+    );
     if (!response.ok) {
       throw new Error('Failed to add saved task');
     }
@@ -113,14 +116,10 @@ export async function addSavedTaskAPI(name: string, estimatedTime: number): Prom
 // Update an existing saved task for the current user
 export async function updateSavedTaskAPI(id: number, payload: Partial<{ name: string; estimated_time: number }>): Promise<SavedTask | null> {
   try {
-    const response = await fetch(`${FAST_URL}/lockin/saved-tasks/${id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-      body: JSON.stringify(payload),
-    });
+    const response = await fetch(
+      `${FAST_URL}/lockin/saved-tasks/${id}`,
+      getAuthFetchOptions('PUT', payload)
+    );
     if (!response.ok) {
       throw new Error('Failed to update saved task');
     }
