@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Plus, Save, Trash2, Edit2, Check, X } from "lucide-react"
 import { useLocalStorage } from "../hooks/useLocalStorage"
-import { fetchSavedTasks, addSavedTaskAPI, updateSavedTaskAPI, SavedTask as BackendSavedTask } from "@/services/taskService"
+import { fetchSavedTasks, addSavedTaskAPI, updateSavedTaskAPI, deleteSavedTaskAPI, retryUntilSuccess, SavedTask as BackendSavedTask } from "@/services/taskService"
 
 interface SavedTask {
   id: number
@@ -34,20 +34,44 @@ export function SavedTaskManager({ onAddSavedTask, isLoggedIn }: SavedTaskManage
   const [editingTaskId, setEditingTaskId] = useState<number | null>(null)
   const [editTaskName, setEditTaskName] = useState("")
   const [editTaskTime, setEditTaskTime] = useState("")
+  const [username, setUsername] = useState<string | null>(null)
 
   // Fetch saved tasks from backend if logged in
   useEffect(() => {
     if (isLoggedIn) {
-      fetchSavedTasks().then(setSavedTasks)
+      fetchSavedTasks().then((tasks) =>
+        setSavedTasks(
+          tasks.map((task) => ({
+            id: task.id,
+            name: task.name,
+            estimatedTime: task.estimated_time,
+          })),
+        ),
+      )
+      fetch("/api/user/me")
+        .then((res) => res.json())
+        .then((data) => {
+          if (data && data.username) setUsername(data.username)
+        })
     }
   }, [isLoggedIn])
 
   const handleAddSavedTask = async () => {
     if (newTaskName && newTaskTime) {
-      if (isLoggedIn) {
-        const newTask = await addSavedTaskAPI(newTaskName, Number.parseInt(newTaskTime))
-        if (newTask) setSavedTasks([...savedTasks, newTask])
-      } else {
+      if (isLoggedIn && username) {
+        const newTask = await retryUntilSuccess(() =>
+          addSavedTaskAPI({
+            username,
+            name: newTaskName,
+            estimated_time: Number.parseInt(newTaskTime),
+          }),
+        )
+        if (newTask)
+          setSavedTasks([
+            ...savedTasks,
+            { id: newTask.id, name: newTask.name, estimatedTime: newTask.estimated_time },
+          ])
+      } else if (!isLoggedIn) {
         const newTask: SavedTask = {
           id: nextSavedId,
           name: newTaskName,
@@ -63,7 +87,13 @@ export function SavedTaskManager({ onAddSavedTask, isLoggedIn }: SavedTaskManage
   }
 
   const handleDeleteSavedTask = (id: number) => {
-    setSavedTasks(savedTasks.filter((task) => task.id !== id))
+    if (isLoggedIn && username) {
+      retryUntilSuccess(() => deleteSavedTaskAPI(id)).then(() => {
+        setSavedTasks(savedTasks.filter((task) => task.id !== id))
+      })
+    } else {
+      setSavedTasks(savedTasks.filter((task) => task.id !== id))
+    }
   }
 
   const handleEditClick = (task: SavedTask) => {
@@ -74,13 +104,23 @@ export function SavedTaskManager({ onAddSavedTask, isLoggedIn }: SavedTaskManage
 
   const handleEditSave = async () => {
     if (editingTaskId && editTaskName && editTaskTime) {
-      if (isLoggedIn) {
-        const updated = await updateSavedTaskAPI(editingTaskId, {
-          name: editTaskName,
-          estimated_time: Number.parseInt(editTaskTime),
-        })
-        if (updated) setSavedTasks(savedTasks.map((task) => (task.id === editingTaskId ? updated : task)))
-      } else {
+      if (isLoggedIn && username) {
+        const updated = await retryUntilSuccess(() =>
+          updateSavedTaskAPI(editingTaskId, {
+            username,
+            name: editTaskName,
+            estimated_time: Number.parseInt(editTaskTime),
+          }),
+        )
+        if (updated)
+          setSavedTasks(
+            savedTasks.map((task) =>
+              task.id === editingTaskId
+                ? { id: updated.id, name: updated.name, estimatedTime: updated.estimated_time }
+                : task,
+            ),
+          )
+      } else if (!isLoggedIn) {
         setSavedTasks(
           savedTasks.map((task) =>
             task.id === editingTaskId

@@ -5,7 +5,7 @@ import { AddTaskForm } from "../AddTaskForm"
 import { TaskList } from "../TaskList"
 import { CompletedTaskList } from "../CompletedTaskList"
 import { SavedTaskManager } from "../SavedTask"
-import { fetchAllTasks, addTaskAPI, updateTaskAPI } from "@/services/taskService"
+import { fetchAllTasks, addTaskAPI, updateTaskAPI, deleteTaskAPI, retryUntilSuccess } from "@/services/taskService"
 import { addMinutesToDate } from "@/utils/timeUtils"
 import { useLocalStorage } from "@/hooks/useLocalStorage"
 
@@ -26,8 +26,23 @@ export function TaskManager() {
   const [nextId, setNextId] = useLocalStorage("nextId", 1)
   const [syncing, setSyncing] = useState(false)
   const [lastSyncError, setLastSyncError] = useState<string | null>(null)
+  const [username, setUsername] = useState<string | null>(null)
+  const [usernameFetched, setUsernameFetched] = useState(false)
+
+  // Fetch username only once on mount
+  useEffect(() => {
+    if (!usernameFetched) {
+      fetch("/api/user/me")
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.username) setUsername(data.username)
+          setUsernameFetched(true)
+        })
+    }
+  }, [usernameFetched])
 
   const addTask = (taskName: string, estimatedTime: number) => {
+    if (!username) return // Don't add if username not loaded
     const now = new Date()
     const newTask: Task = {
       id: nextId,
@@ -37,9 +52,10 @@ export function TaskManager() {
       completionTime: addMinutesToDate(now, estimatedTime).toISOString(),
       needsSync: true,
     }
-    setTasks([...tasks, newTask])
+    setTasks([...tasks, newTask]) // Save to local storage immediately
     setNextId(nextId + 1)
     updateTaskTimes([...tasks, newTask])
+    // Do NOT call addTaskAPI here; syncTasksWithBackend will handle backend sync
   }
 
   const completeTask = (taskId: number) => {
@@ -61,9 +77,14 @@ export function TaskManager() {
   }
 
   const deleteTask = (taskId: number) => {
+    // Remove from UI immediately
     const updatedTasks = tasks.filter((task) => task.id !== taskId)
     setTasks(updatedTasks)
     updateTaskTimes(updatedTasks)
+    // If logged in, sync delete to backend with infinite retry
+    if (username) {
+      retryUntilSuccess(() => deleteTaskAPI(taskId))
+    }
   }
 
   const deleteCompletedTask = (taskId: number) => {
@@ -127,6 +148,7 @@ export function TaskManager() {
   }, [tasks, completedTasks])
 
   const syncTasksWithBackend = async () => {
+    if (!username) return
     const dirtyTasks = tasks.filter(t => t.needsSync)
     if (dirtyTasks.length === 0) {
       setSyncing(false)
@@ -136,16 +158,34 @@ export function TaskManager() {
     setSyncing(true)
     setLastSyncError(null)
     try {
+      let allSuccess = true
       for (const task of dirtyTasks) {
-        if (task.id < 1000000) {
-          await addTaskAPI(task.name, task.estimatedTime)
-        } else {
-          await updateTaskAPI(task.id, { name: task.name, estimated_time: task.estimatedTime })
+        const payload = {
+          username,
+          name: task.name, // include name in payload
+          estimated_time: task.estimatedTime,
+          completion_time: task.completionTime,
+          completed: false,
         }
+        let ok = false
+        if (task.id < 1000000) {
+          const res = await retryUntilSuccess(() => addTaskAPI(payload))
+          ok = !!res
+        } else {
+          // Only update if id >= 1000000 (simulate backend id)
+          const res = await retryUntilSuccess(() => updateTaskAPI(task.id, payload))
+          ok = !!res
+        }
+        if (!ok) allSuccess = false
       }
-      setTasks(tasks.map(t => ({ ...t, needsSync: false })))
-      setSyncing(false)
-      setLastSyncError(null)
+      if (allSuccess) {
+        setTasks(tasks.map(t => ({ ...t, needsSync: false })))
+        setSyncing(false)
+        setLastSyncError(null)
+      } else {
+        setLastSyncError("Failed to sync some tasks with backend")
+        setSyncing(false)
+      }
     } catch (err) {
       setLastSyncError("Failed to sync tasks with backend")
       setSyncing(false)

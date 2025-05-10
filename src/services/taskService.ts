@@ -2,15 +2,22 @@ import { getSessionCookie } from "@/utils/getCookie";
 
 const FAST_URL = process.env.FAST_URL || '';
 
-interface Task {
-  id: number;
-  name: string;
-  estimatedTime: number;
-  startTime: string;
-  completionTime: string;
+export interface Task {
+  taskid: number;
+  username: string;
+  estimated_time: number;
+  completion_time?: string | null;
+  completed?: boolean;
+  created_at: string;
 }
 
-// Helper to get fetch options with session cookie
+export interface SavedTask {
+  id: number;
+  username: string;
+  name: string;
+  estimated_time: number;
+}
+
 function getAuthFetchOptions(method: string = 'GET', body?: any): RequestInit {
   const sessionCookie = getSessionCookie();
   const headers: Record<string, string> = {
@@ -27,10 +34,23 @@ function getAuthFetchOptions(method: string = 'GET', body?: any): RequestInit {
   };
 }
 
-// Fetch all tasks for the current user
+// --- INFINITE RETRY UTILITY ---
+export async function retryUntilSuccess<T>(fn: () => Promise<T>, delay = 2000): Promise<T> {
+  while (true) {
+    try {
+      const result = await fn();
+      if (result !== null && result !== undefined) return result;
+    } catch (e) {
+      // continue
+    }
+    await new Promise((res) => setTimeout(res, delay));
+  }
+}
+
+// --- TASKS ---
 export async function fetchAllTasks(): Promise<Task[]> {
   try {
-    const response = await fetch(`${FAST_URL}/lockin/tasks`, getAuthFetchOptions());
+    const response = await fetch(`/api/lockin/tasks`, getAuthFetchOptions());
     if (!response.ok) {
       throw new Error('Failed to fetch tasks');
     }
@@ -41,12 +61,16 @@ export async function fetchAllTasks(): Promise<Task[]> {
   }
 }
 
-// Add a new task for the current user
-export async function addTaskAPI(taskName: string, estimatedTime: number): Promise<Task | null> {
+export async function addTaskAPI(payload: {
+  username: string;
+  estimated_time: number;
+  completion_time?: string;
+  completed?: boolean;
+}): Promise<Task | null> {
   try {
     const response = await fetch(
-      `${FAST_URL}/lockin/tasks`,
-      getAuthFetchOptions('POST', { name: taskName, estimated_time: estimatedTime })
+      `/api/lockin/tasks`,
+      getAuthFetchOptions('POST', payload)
     );
     if (!response.ok) {
       throw new Error('Failed to add task');
@@ -58,11 +82,15 @@ export async function addTaskAPI(taskName: string, estimatedTime: number): Promi
   }
 }
 
-// Update an existing task for the current user
-export async function updateTaskAPI(taskid: number, payload: Partial<{ name: string; estimated_time: number }>): Promise<Task | null> {
+export async function updateTaskAPI(taskid: number, payload: {
+  username?: string;
+  estimated_time?: number;
+  completion_time?: string;
+  completed?: boolean;
+}): Promise<Task | null> {
   try {
     const response = await fetch(
-      `${FAST_URL}/lockin/tasks/${taskid}`,
+      `/api/lockin/tasks/${taskid}`,
       getAuthFetchOptions('PUT', payload)
     );
     if (!response.ok) {
@@ -75,17 +103,26 @@ export async function updateTaskAPI(taskid: number, payload: Partial<{ name: str
   }
 }
 
-// SavedTask type for backend
-export interface SavedTask {
-  id: number;
-  name: string;
-  estimatedTime: number;
+export async function deleteTaskAPI(taskid: number): Promise<boolean> {
+  try {
+    const response = await fetch(
+      `/api/lockin/tasks/${taskid}`,
+      getAuthFetchOptions('DELETE')
+    );
+    if (!response.ok) {
+      throw new Error('Failed to delete task');
+    }
+    return true;
+  } catch (error) {
+    console.error('Error deleting task:', error);
+    return false;
+  }
 }
 
-// Fetch all saved tasks for the current user
+// --- SAVED TASKS ---
 export async function fetchSavedTasks(): Promise<SavedTask[]> {
   try {
-    const response = await fetch(`${FAST_URL}/lockin/saved-tasks`, getAuthFetchOptions());
+    const response = await fetch(`/api/lockin/saved-tasks`, getAuthFetchOptions());
     if (!response.ok) {
       throw new Error('Failed to fetch saved tasks');
     }
@@ -96,12 +133,15 @@ export async function fetchSavedTasks(): Promise<SavedTask[]> {
   }
 }
 
-// Add a new saved task for the current user
-export async function addSavedTaskAPI(name: string, estimatedTime: number): Promise<SavedTask | null> {
+export async function addSavedTaskAPI(payload: {
+  username: string;
+  name: string;
+  estimated_time: number;
+}): Promise<SavedTask | null> {
   try {
     const response = await fetch(
-      `${FAST_URL}/lockin/saved-tasks`,
-      getAuthFetchOptions('POST', { name, estimated_time: estimatedTime })
+      `/api/lockin/saved-tasks`,
+      getAuthFetchOptions('POST', payload)
     );
     if (!response.ok) {
       throw new Error('Failed to add saved task');
@@ -113,11 +153,14 @@ export async function addSavedTaskAPI(name: string, estimatedTime: number): Prom
   }
 }
 
-// Update an existing saved task for the current user
-export async function updateSavedTaskAPI(id: number, payload: Partial<{ name: string; estimated_time: number }>): Promise<SavedTask | null> {
+export async function updateSavedTaskAPI(id: number, payload: {
+  username: string;
+  name?: string;
+  estimated_time?: number;
+}): Promise<SavedTask | null> {
   try {
     const response = await fetch(
-      `${FAST_URL}/lockin/saved-tasks/${id}`,
+      `/api/lockin/saved-tasks/${id}`,
       getAuthFetchOptions('PUT', payload)
     );
     if (!response.ok) {
@@ -127,5 +170,21 @@ export async function updateSavedTaskAPI(id: number, payload: Partial<{ name: st
   } catch (error) {
     console.error('Error updating saved task:', error);
     return null;
+  }
+}
+
+export async function deleteSavedTaskAPI(id: number): Promise<boolean> {
+  try {
+    const response = await fetch(
+      `/api/lockin/saved-tasks/${id}`,
+      getAuthFetchOptions('DELETE')
+    );
+    if (!response.ok) {
+      throw new Error('Failed to delete saved task');
+    }
+    return true;
+  } catch (error) {
+    console.error('Error deleting saved task:', error);
+    return false;
   }
 }
