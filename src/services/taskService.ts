@@ -13,9 +13,24 @@ export interface Task {
 
 export interface SavedTask {
   id: number;
+  taskidbyfrontend: number; // Fix: Change from method to property
+  name: string;
+  estimated_time: number;
+}
+
+interface BackendSavedTask {
+  id: number;
+  taskidbyfrontend: number;
+  name: string;
+  estimated_time: number;
+  username: string;
+}
+
+interface SavedTaskInput {
   username: string;
   name: string;
   estimated_time: number;
+  taskidbyfrontend: number;
 }
 
 function getAuthFetchOptions(method: string = 'GET', body?: any): RequestInit {
@@ -133,44 +148,22 @@ export async function fetchSavedTasks(): Promise<SavedTask[]> {
   }
 }
 
-export async function addSavedTaskAPI(payload: {
-  username: string;
-  name: string;
-  estimated_time: number;
-}): Promise<SavedTask | null> {
-  try {
-    const response = await fetch(
-      `/api/lockin/saved-tasks`,
-      getAuthFetchOptions('POST', payload)
-    );
-    if (!response.ok) {
-      throw new Error('Failed to add saved task');
-    }
-    return await response.json();
-  } catch (error) {
-    console.error('Error adding saved task:', error);
-    return null;
-  }
+export async function addSavedTaskAPI(task: SavedTaskInput): Promise<BackendSavedTask> {
+  const response = await fetch(
+    '/api/lockin/saved-tasks',
+    getAuthFetchOptions('POST', task)
+  );
+  if (!response.ok) throw new Error('Failed to add saved task');
+  return response.json();
 }
 
-export async function updateSavedTaskAPI(id: number, payload: {
-  username: string;
-  name?: string;
-  estimated_time?: number;
-}): Promise<SavedTask | null> {
-  try {
-    const response = await fetch(
-      `/api/lockin/saved-tasks/${id}`,
-      getAuthFetchOptions('PUT', payload)
-    );
-    if (!response.ok) {
-      throw new Error('Failed to update saved task');
-    }
-    return await response.json();
-  } catch (error) {
-    console.error('Error updating saved task:', error);
-    return null;
-  }
+export async function updateSavedTaskAPI(id: number, task: SavedTaskInput): Promise<BackendSavedTask> {
+  const response = await fetch(
+    `/api/lockin/saved-tasks/${id}`,
+    getAuthFetchOptions('PUT', task)
+  );
+  if (!response.ok) throw new Error('Failed to update saved task');
+  return response.json();
 }
 
 export async function deleteSavedTaskAPI(id: number): Promise<boolean> {
