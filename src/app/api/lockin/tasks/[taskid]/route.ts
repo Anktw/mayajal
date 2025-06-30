@@ -1,6 +1,16 @@
+import { NextResponse } from "next/server";
+
+// Commented out for deployment - logged-in features disabled
+
+export async function PUT(request: Request, { params }: { params: Promise<{ taskid: string }> }) {
+  return NextResponse.json({ detail: "Feature disabled for deployment" }, { status: 503 });
+}
+
+/*
+Original implementation commented out:
+
 import { cookies } from "next/headers";
 import { decrypt } from "@/lib/crypto";
-import { NextResponse } from "next/server";
 
 const FAST_URL = process.env.FAST_URL!;
 
@@ -26,3 +36,4 @@ export async function PUT(request: Request, { params }: { params: Promise<{ task
     return NextResponse.json({ detail: "Internal error" }, { status: 500 });
   }
 }
+*/

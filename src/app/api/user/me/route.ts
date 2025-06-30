@@ -1,9 +1,23 @@
-import { cookies } from "next/headers"
-import { decrypt } from "@/lib/crypto"
 import { NextResponse } from "next/server"
 
-const FAST_URL = process.env.FAST_URL!
+// Commented out for deployment - logged-in features disabled
+/*
+import { cookies } from "next/headers"
+import { decrypt } from "@/lib/crypto"
 
+const FAST_URL = process.env.FAST_URL!
+*/
+
+export async function GET() {
+  return NextResponse.json({ detail: "Feature disabled for deployment" }, { status: 503 })
+}
+
+export async function PUT(request: Request) {
+  return NextResponse.json({ detail: "Feature disabled for deployment" }, { status: 503 })
+}
+
+/*
+Original implementation commented out:
 export async function GET() {
   try {
     const cookieStore = await cookies()
@@ -47,3 +61,4 @@ export async function PUT(request: Request) {
     return NextResponse.json({ detail: "Internal error" }, { status: 500 })
   }
 }
+*/
