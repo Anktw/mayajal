@@ -4,6 +4,7 @@ const FAST_URL = process.env.FAST_URL || '';
 
 export interface Task {
   taskid: number;
+  taskidbyfrontend: number;
   username: string;
   estimated_time: number;
   completion_time?: string | null;
@@ -13,14 +14,12 @@ export interface Task {
 
 export interface SavedTask {
   id: number;
-  taskidbyfrontend: number; // Fix: Change from method to property
   name: string;
   estimated_time: number;
 }
 
 interface BackendSavedTask {
   id: number;
-  taskidbyfrontend: number;
   name: string;
   estimated_time: number;
   username: string;
@@ -30,7 +29,6 @@ interface SavedTaskInput {
   username: string;
   name: string;
   estimated_time: number;
-  taskidbyfrontend: number;
 }
 
 function getAuthFetchOptions(method: string = 'GET', body?: any): RequestInit {
@@ -81,6 +79,7 @@ export async function addTaskAPI(payload: {
   estimated_time: number;
   completion_time?: string;
   completed?: boolean;
+  taskidbyfrontend: number;
 }): Promise<Task | null> {
   try {
     const response = await fetch(
@@ -102,6 +101,7 @@ export async function updateTaskAPI(taskid: number, payload: {
   estimated_time?: number;
   completion_time?: string;
   completed?: boolean;
+  taskidbyfrontend?: number;
 }): Promise<Task | null> {
   try {
     const response = await fetch(
@@ -157,7 +157,7 @@ export async function addSavedTaskAPI(task: SavedTaskInput): Promise<BackendSave
   return response.json();
 }
 
-export async function updateSavedTaskAPI(id: number, task: SavedTaskInput): Promise<BackendSavedTask> {
+export async function updateSavedTaskAPI(id: number, task: Omit<SavedTaskInput, 'username'>): Promise<BackendSavedTask> {
   const response = await fetch(
     `/api/lockin/saved-tasks/${id}`,
     getAuthFetchOptions('PUT', task)

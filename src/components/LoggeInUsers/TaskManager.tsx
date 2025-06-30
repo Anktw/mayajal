@@ -4,13 +4,14 @@ import { useEffect, useState } from "react"
 import { AddTaskForm } from "../AddTaskForm"
 import { TaskList } from "../TaskList"
 import { CompletedTaskList } from "../CompletedTaskList"
-import { SavedTaskManager } from "../SavedTask"
+import { SavedTaskManager } from "./SavedTask"
 import { fetchAllTasks, addTaskAPI, updateTaskAPI, deleteTaskAPI, retryUntilSuccess } from "@/services/taskService"
 import { addMinutesToDate } from "@/utils/timeUtils"
 import { useLocalStorage } from "@/hooks/useLocalStorage"
 
 interface Task {
   id: number
+  taskidbyfrontend: number
   name: string
   estimatedTime: number
   startTime: string
@@ -46,6 +47,7 @@ export function TaskManager() {
     const now = new Date()
     const newTask: Task = {
       id: nextId,
+      taskidbyfrontend: nextId,
       name: taskName,
       estimatedTime,
       startTime: now.toISOString(),
@@ -162,17 +164,17 @@ export function TaskManager() {
       for (const task of dirtyTasks) {
         const payload = {
           username,
-          name: task.name, // include name in payload
+          name: task.name,
           estimated_time: task.estimatedTime,
           completion_time: task.completionTime,
           completed: false,
+          taskidbyfrontend: task.taskidbyfrontend,
         }
         let ok = false
         if (task.id < 1000000) {
           const res = await retryUntilSuccess(() => addTaskAPI(payload))
           ok = !!res
         } else {
-          // Only update if id >= 1000000 (simulate backend id)
           const res = await retryUntilSuccess(() => updateTaskAPI(task.id, payload))
           ok = !!res
         }

@@ -4,12 +4,13 @@ import { useEffect, useState } from "react"
 import { AddTaskForm } from "../AddTaskForm"
 import { TaskList } from "../TaskList"
 import { CompletedTaskList } from "../CompletedTaskList"
-import { SavedTaskManager } from "../SavedTask"
+import { SavedTaskManager } from "./SavedTask"
 import { useLocalStorage } from "@/hooks/useLocalStorage"
 import { addMinutesToDate } from "@/utils/timeUtils"
 
 interface Task {
   id: number
+  taskidbyfrontend: number
   name: string
   estimatedTime: number
   startTime: string
@@ -25,6 +26,7 @@ export function TaskManagerGuest() {
     const now = new Date()
     const newTask: Task = {
       id: nextId,
+      taskidbyfrontend: nextId,
       name: taskName,
       estimatedTime,
       startTime: now.toISOString(),

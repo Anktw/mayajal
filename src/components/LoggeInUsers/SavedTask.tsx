@@ -4,41 +4,35 @@ import React, { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Plus, Save, Trash2, Edit2, Check, X } from "lucide-react"
-import { useLocalStorage } from "../hooks/useLocalStorage"
+import { useLocalStorage } from "../../hooks/useLocalStorage"
 import { fetchSavedTasks, addSavedTaskAPI, updateSavedTaskAPI, deleteSavedTaskAPI, retryUntilSuccess, SavedTask as BackendSavedTask } from "@/services/taskService"
 
 interface SavedTask {
   id: number
-  taskidbyfrontend: number
   name: string
   estimatedTime: number
 }
 
 interface SavedTaskManagerProps {
-  onAddSavedTask: (task: Omit<SavedTask, "id" | "taskidbyfrontend">) => void
-  isLoggedIn?: boolean
+  onAddSavedTask: (task: Omit<SavedTask, "id">) => void
+  username: string
 }
 
-export function SavedTaskManager({ onAddSavedTask, isLoggedIn }: SavedTaskManagerProps) {
-  const [savedTasks, setSavedTasks] = useLocalStorage<SavedTask[]>("savedTasks", [
-    { id: 1, taskidbyfrontend: 1, name: "Quick coding session", estimatedTime: 25 },
-    { id: 2, taskidbyfrontend: 2, name: "Break", estimatedTime: 10 },
-  ])
-  const [nextFrontendId, setNextFrontendId] = useLocalStorage("nextSavedTaskFrontendId", 3)
+export function SavedTaskManager({ onAddSavedTask, username }: SavedTaskManagerProps) {
+  const [savedTasks, setSavedTasks] = useLocalStorage<SavedTask[]>("savedTasks", [])
+  const [nextFrontendId, setNextFrontendId] = useLocalStorage("nextSavedTaskFrontendId", 1)
   const [newTaskName, setNewTaskName] = useState("")
   const [newTaskTime, setNewTaskTime] = useState("")
   const [isAdding, setIsAdding] = useState(false)
   const [editingTaskId, setEditingTaskId] = useState<number | null>(null)
   const [editTaskName, setEditTaskName] = useState("")
   const [editTaskTime, setEditTaskTime] = useState("")
-  const [username, setUsername] = useState<string | null>(null)
   const [deletedTasks, setDeletedTasks] = useLocalStorage<number[]>("deletedTaskIds", [])
 
-  // Add this new function
+  // Sync deleted tasks with backend when online
   const syncDeletedTasks = async () => {
-    if (!isLoggedIn || !username || deletedTasks.length === 0) return;
+    if (deletedTasks.length === 0) return;
 
-    // Try to delete each stored ID
     const failedDeletes: number[] = [];
     
     for (const id of deletedTasks) {
@@ -49,23 +43,21 @@ export function SavedTaskManager({ onAddSavedTask, isLoggedIn }: SavedTaskManage
       }
     }
 
-    // Update deleted tasks list with only the failed ones
     setDeletedTasks(failedDeletes);
   };
 
-  // Fetch saved tasks from backend if logged in
+  // Initial sync and online status handling
   useEffect(() => {
-    if (isLoggedIn) {
-      // Sync deletions first
-      syncDeletedTasks();
-
-      fetchSavedTasks().then((backendTasks) => {
+    const syncWithBackend = async () => {
+      try {
+        const backendTasks = await fetchSavedTasks();
+        
         // Filter out any tasks that are pending deletion
-        backendTasks = backendTasks.filter(task => !deletedTasks.includes(task.id));
+        const filteredBackendTasks = backendTasks.filter(task => !deletedTasks.includes(task.id));
 
         // Create maps for easy lookup
         const backendTaskMap = new Map(
-          backendTasks.map(task => [task.taskidbyfrontend, task])
+          filteredBackendTasks.map(task => [task.taskidbyfrontend, task])
         );
         
         const localTaskMap = new Map(
@@ -88,19 +80,17 @@ export function SavedTaskManager({ onAddSavedTask, isLoggedIn }: SavedTaskManage
           } else {
             // Task only exists locally - sync to backend
             syncedTasks.push(localTask);
-            if (username) {
-              addSavedTaskAPI({
-                username,
-                name: localTask.name,
-                estimated_time: localTask.estimatedTime,
-                taskidbyfrontend: localTask.taskidbyfrontend
-              });
-            }
+            addSavedTaskAPI({
+              username,
+              name: localTask.name,
+              estimated_time: localTask.estimatedTime,
+              taskidbyfrontend: localTask.taskidbyfrontend
+            });
           }
         });
 
         // Add backend tasks that don't exist locally
-        backendTasks.forEach(backendTask => {
+        filteredBackendTasks.forEach(backendTask => {
           if (!localTaskMap.has(Number(backendTask.taskidbyfrontend))) {
             syncedTasks.push({
               id: backendTask.id,
@@ -112,26 +102,24 @@ export function SavedTaskManager({ onAddSavedTask, isLoggedIn }: SavedTaskManage
         });
 
         setSavedTasks(syncedTasks);
-      });
+      } catch (error) {
+        console.error("Error syncing with backend:", error);
+      }
+    };
 
-      fetch("/api/user/me")
-        .then((res) => res.json())
-        .then((data) => {
-          if (data && data.username) setUsername(data.username)
-        })
-    }
-  }, [isLoggedIn, username, deletedTasks]) // Add deletedTasks to dependencies
+    syncWithBackend();
+    syncDeletedTasks();
+  }, [username]);
 
+  // Handle online status changes
   useEffect(() => {
     const handleOnline = () => {
-      if (isLoggedIn) {
-        syncDeletedTasks();
-      }
+      syncDeletedTasks();
     };
 
     window.addEventListener('online', handleOnline);
     return () => window.removeEventListener('online', handleOnline);
-  }, [isLoggedIn]);
+  }, []);
 
   const handleAddSavedTask = async () => {
     if (newTaskName && newTaskTime) {
@@ -147,31 +135,28 @@ export function SavedTaskManager({ onAddSavedTask, isLoggedIn }: SavedTaskManage
       setSavedTasks([...savedTasks, newTask]);
       setNextFrontendId(nextFrontendId + 1);
 
-      // Sync with backend if logged in
-      if (isLoggedIn && username) {
-        try {
-          const backendTask = await retryUntilSuccess(() =>
-        addSavedTaskAPI({
-          username,
-          name: newTaskName,
-          estimated_time: Number.parseInt(newTaskTime),
-          taskidbyfrontend: newTaskFrontendId,
-        })
-          );
-
-          if (backendTask) {
-        setSavedTasks(
-          savedTasks.map((task) =>
-          task.taskidbyfrontend === newTaskFrontendId
-            ? { ...task, id: backendTask.id }
-            : task,
-          ),
+      // Try to sync with backend
+      try {
+        const backendTask = await retryUntilSuccess(() =>
+          addSavedTaskAPI({
+            username,
+            name: newTaskName,
+            estimated_time: Number.parseInt(newTaskTime),
+            taskidbyfrontend: newTaskFrontendId,
+          })
         );
-          }
-        } catch (error) {
-          console.error("Error adding task to backend:", error);
-          // Optionally, display an error message to the user
+
+        if (backendTask) {
+          setSavedTasks(
+            savedTasks.map((task) =>
+              task.taskidbyfrontend === newTaskFrontendId
+                ? { ...task, id: backendTask.id }
+                : task,
+            ),
+          );
         }
+      } catch (error) {
+        console.error("Error adding task to backend:", error);
       }
 
       setNewTaskName("");
@@ -184,12 +169,14 @@ export function SavedTaskManager({ onAddSavedTask, isLoggedIn }: SavedTaskManage
     // Remove from local storage first
     setSavedTasks(savedTasks.filter((task) => task.taskidbyfrontend !== taskidbyfrontend));
 
-    // If logged in, sync with backend immediately
-    if (isLoggedIn && username) {
-      retryUntilSuccess(() => deleteSavedTaskAPI(id));
-    } else if (id > 0) { // Only track if it was a synced task (has real backend id)
-      // Store the ID to delete later when back online
-      setDeletedTasks([...deletedTasks, id]);
+    // If task has a backend ID, try to delete from backend
+    if (id > 0) {
+      try {
+        retryUntilSuccess(() => deleteSavedTaskAPI(id));
+      } catch (error) {
+        // If offline or deletion fails, store ID for later deletion
+        setDeletedTasks([...deletedTasks, id]);
+      }
     }
   };
 
@@ -201,40 +188,38 @@ export function SavedTaskManager({ onAddSavedTask, isLoggedIn }: SavedTaskManage
 
   const handleEditSave = async () => {
     if (editingTaskId && editTaskName && editTaskTime) {
-      // Find the task being edited to get its taskidbyfrontend
       const taskToEdit = savedTasks.find(task => task.id === editingTaskId);
       
-      if (isLoggedIn && username && taskToEdit) {
-        const updated = await retryUntilSuccess(() =>
-          updateSavedTaskAPI(editingTaskId, {
-            username,
-            name: editTaskName,
-            estimated_time: Number.parseInt(editTaskTime),
-            taskidbyfrontend: taskToEdit.taskidbyfrontend // Use the existing taskidbyfrontend
-          }),
-        )
-        if (updated)
-          setSavedTasks(
-            savedTasks.map((task) =>
-              task.id === editingTaskId
-                ? { 
-                    id: updated.id, 
-                    taskidbyfrontend: taskToEdit.taskidbyfrontend,
-                    name: updated.name, 
-                    estimatedTime: updated.estimated_time 
-                  }
-                : task,
-            ),
-          )
-      } else if (!isLoggedIn) {
-        setSavedTasks(
-          savedTasks.map((task) =>
-            task.id === editingTaskId
-              ? { ...task, name: editTaskName, estimatedTime: Number.parseInt(editTaskTime) }
-              : task,
-          ),
-        )
+      if (taskToEdit) {
+        try {
+          const updated = await retryUntilSuccess(() =>
+            updateSavedTaskAPI(editingTaskId, {
+              username,
+              name: editTaskName,
+              estimated_time: Number.parseInt(editTaskTime),
+              taskidbyfrontend: taskToEdit.taskidbyfrontend
+            })
+          );
+
+          if (updated) {
+            setSavedTasks(
+              savedTasks.map((task) =>
+                task.id === editingTaskId
+                  ? { 
+                      id: updated.id, 
+                      taskidbyfrontend: taskToEdit.taskidbyfrontend,
+                      name: updated.name, 
+                      estimatedTime: updated.estimated_time 
+                    }
+                  : task,
+              ),
+            );
+          }
+        } catch (error) {
+          console.error("Error updating task in backend:", error);
+        }
       }
+
       setEditingTaskId(null)
       setEditTaskName("")
       setEditTaskTime("")
@@ -337,4 +322,4 @@ export function SavedTaskManager({ onAddSavedTask, isLoggedIn }: SavedTaskManage
       )}
     </div>
   )
-}
+} 
