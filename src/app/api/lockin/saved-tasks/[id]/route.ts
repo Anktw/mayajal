@@ -4,14 +4,15 @@ import { NextResponse } from "next/server";
 
 const FAST_URL = process.env.FAST_URL!;
 
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
+export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const body = await request.json();
     const cookieStore = await cookies();
     const encryptedSession = cookieStore.get("session")?.value;
     if (!encryptedSession) return NextResponse.json({ detail: "Unauthorized" }, { status: 401 });
     const session = await decrypt(encryptedSession);
-    const res = await fetch(`${FAST_URL}/lockin/saved-tasks/${params.id}`, {
+    const res = await fetch(`${FAST_URL}/lockin/saved-tasks/${id}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
