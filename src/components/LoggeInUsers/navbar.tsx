@@ -1,4 +1,4 @@
-"use client"
+{/*"use client"
 
 import { useState, useEffect, useCallback } from "react"
 import { SettingsButton } from "../settings-button"
@@ -44,10 +44,7 @@ const HeaderComp = () => {
                 className={`backdrop-blur-xl flex justify-between items-center px-6 py-4 md:px-12 ${scrolled ? "p-2 border-2 rounded-b-lg" : "p-4"
                     }`}
             >
-                {/* Logo */}
                 Lock-in
-                {/* Desktop Navigation */}
-                {/* User/Login Section */}
                 <SettingsButton />
                 <LoggedUser />
             </div>    
@@ -55,3 +52,8 @@ const HeaderComp = () => {
     )
 }
 export default HeaderComp
+*/}
+import { NextResponse } from "next/server";
+export default function HeaderComp() {
+    return NextResponse.json({ detail: "Feature disabled for deployment" }, { status: 503 });
+}

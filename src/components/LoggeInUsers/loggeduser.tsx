@@ -1,4 +1,6 @@
-"use client"
+import { NextResponse } from "next/server";
+
+{/*"use client"
 import { Skeleton } from "@/components/ui/skeleton"
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { useState, useEffect } from "react"
@@ -42,3 +44,8 @@ export default function LoggedUser() {
 
   return <span>User not found</span>
 }
+  */}
+
+  export default function LoggedUser() {
+    return NextResponse.json({ detail: "Feature disabled for deployment" }, { status: 503 })
+  }

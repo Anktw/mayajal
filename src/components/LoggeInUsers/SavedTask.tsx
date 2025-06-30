@@ -1,4 +1,6 @@
-"use client"
+import { NextResponse } from "next/server";
+
+{/*"use client"
 
 import React, { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
@@ -323,3 +325,7 @@ export function SavedTaskManager({ onAddSavedTask, username }: SavedTaskManagerP
     </div>
   )
 } 
+  */}
+export default function SavedTask() {
+  return NextResponse.json({ detail: "Feature disabled for deployment" }, { status: 503 });
+}

@@ -1,4 +1,6 @@
-"use client"
+import { NextResponse } from "next/server";
+
+{/*"use client"
 
 import { useEffect, useState } from "react"
 import { AddTaskForm } from "../AddTaskForm"
@@ -231,4 +233,8 @@ export function TaskManager() {
       {isLoading && <span className="text-xs text-gray-500">Loading...</span>}
     </div>
   )
+}
+  */}
+export default function TaskManager() {
+  return NextResponse.json({ detail: "Feature disabled for deployment" }, { status: 503 })
 }
