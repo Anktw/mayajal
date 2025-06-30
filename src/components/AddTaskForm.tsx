@@ -53,7 +53,7 @@ export function AddTaskForm({ onAddTask }: AddTaskFormProps) {
           </SelectContent>
         </Select>
       </div>
-      <Button type="submit">Add Task</Button>
+      <Button type="submit">Lock-in</Button>
     </form>
   );
 }
